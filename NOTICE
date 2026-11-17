@@ -1,0 +1,37 @@
+咨询逐字稿 (ConsultTranscript)
+Copyright 2026 The ConsultTranscript Authors
+
+本项目的自有代码以 Apache License 2.0 授权（见 LICENSE 文件）。
+
+第三方组件声明
+==============
+
+本项目在编译产物（APK）中内置了以下第三方开源模型与库。源码仓库本身不包含
+模型二进制文件（体积过大），模型由编译后的 APK 分发。请遵守各自许可：
+
+1. SenseVoiceSmall 语音识别模型
+   来源：FunAudioLLM / QwenAudio (https://github.com/QwenAudio/SenseVoice)
+   源码许可：MIT License
+   模型权重：FunASR Model Open Source License Agreement v1.1
+             (https://modelscope.cn/models/iic/SenseVoiceSmall)
+   说明：官方许可允许商用，但需遵守第 2.2 条的署名与模型名称要求。
+         此处署名：SenseVoiceSmall by FunAudioLLM/QwenAudio。
+
+2. sherpa-onnx 推理框架
+   来源：https://github.com/k2-fsa/sherpa-onnx
+   许可：Apache License 2.0
+
+3. Silero VAD 语音端点检测模型
+   来源：https://github.com/snakers4/silero-vad
+   许可：MIT License
+
+4. CAM++ 说话人声纹模型（speaker.onnx，若使用）
+   来源：FunASR / ModelScope (iic/speech_campplus_sv_zh-cn_16k-common)
+   许可：Apache License 2.0
+
+5. Android / Jetpack Compose / Kotlin 相关依赖
+   来源：Google / JetBrains
+   许可：Apache License 2.0
+
+本项目不包含任何广告、统计、埋点或联网 SDK。AndroidManifest.xml 未声明
+INTERNET 权限，应用无法访问网络。

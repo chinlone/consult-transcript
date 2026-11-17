@@ -1,0 +1,7 @@
+<resources>
+    <!-- Compose 用 Material 3，这里只留一个不带 ActionBar 的基础主题 -->
+    <style name="Theme.ConsultTranscript" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@android:color/white</item>
+        <item name="android:statusBarColor">?android:attr/colorBackground</item>
+    </style>
+</resources>

@@ -1,0 +1,26 @@
+{
+  "note": "四个模型已全部按下列路径放进 assets/models/ 并随正式 APK 打包；首次启动不下载任何东西。",
+  "status": "已接入真实模型并编译出签名 release APK，见《构建与验证报告.md》",
+  "asr": {
+    "dir": "models/asr/",
+    "files": ["model.int8.onnx", "tokens.txt"],
+    "actual": "sherpa-onnx SenseVoice 中英日韩粤 int8 量化版（model.int8.onnx 实测 239233841 字节）",
+    "language": "zh",
+    "loader": "OfflineRecognizer(assetManager=null, config) → newFromFile 绝对文件路径；AssetCopier 首次启动拷到 filesDir"
+  },
+  "vad": {
+    "dir": "models/vad/",
+    "files": ["vad.onnx"],
+    "actual": "Silero VAD（643854 字节）",
+    "note": "已随包；当前 VadSegmenterImpl 用能量阈值切段兜底，V2 可换官方 VAD"
+  },
+  "speaker": {
+    "dir": "models/speaker/",
+    "files": ["speaker.onnx"],
+    "actual": "nemo_en_titanet_small（40257283 字节）；声纹刻画音色、与语言无关，可用于中文咨询的两说话人聚类",
+    "loader": "SpeakerEmbeddingExtractor(assetManager=null, config)；model 为 val，经构造位置参数传"
+  },
+  "aar": "app/libs/sherpa-onnx-1.13.8.aar（含 arm64-v8a 等 4 架构 .so）",
+  "license_warning": "SenseVoice 系列商用需按 FunASR MODEL_LICENSE 署名。上架或对外分发前请自行核对所用模型许可原文。",
+  "total_size_hint": "四个模型合计约 268MB，加 App 本体与 native 库后，实测正式 APK 约 304MB"
+}

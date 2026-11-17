@@ -1,0 +1,6 @@
+# 复制本文件为项目根目录的 key.properties，并填成你自己的真实值
+# 生成 keystore 的命令见《打包指南.md》
+storeFile=/绝对路径/consult-release.jks
+storePassword=改成你的库密码
+keyAlias=consult
+keyPassword=改成你的密钥密码

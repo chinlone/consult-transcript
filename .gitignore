@@ -1,0 +1,21 @@
+*.iml
+.gradle/
+/local.properties
+/.idea
+/build
+/app/build
+/key.properties
+# 签名密钥库与任何密码文件，绝不进版本库
+*.jks
+*.keystore
+*.p12
+*secret*
+*password*
+# 模型二进制过大（单文件 >100MB，GitHub 拒收），改由内置 APK 分发
+/app/src/main/assets/models/asr/*
+/app/src/main/assets/models/vad/*
+/app/src/main/assets/models/speaker/*
+!/app/src/main/assets/models/**/README.md
+# Kotlin/Gradle 缓存
+.kotlin/
+*.log

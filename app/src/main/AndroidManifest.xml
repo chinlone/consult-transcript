@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!--
+      ★ 本 App 最重要的一行配置是「没有的那一行」：
+        这里故意不写 <uses-permission android:name="android.permission.INTERNET" />
+        Android 系统只给声明过的权限发授权，没声明 = 这个 App 根本无法建立网络连接。
+        这就是「全程离线、数据绝不外传」在系统层面的硬保证，不是口头承诺。
+        验证方法见《打包指南.md》：aapt dump permissions 里查不到 INTERNET 即通过。
+    -->
+
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- 防杀后台①：录音期间持有「部分唤醒锁」，CPU 不进入深睡，锁屏切后台都不会把录音掐断 -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- 防杀后台②：引导用户把本 App 加入电池优化白名单（本机自用，不上架，无需 Play 审核理由） -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+    <!--
+      ★ 剔除第三方库（WorkManager / biometric 等）经 manifest 合并带进来的非必需权限。
+      尤其 ACCESS_NETWORK_STATE：虽然本 App 没有 INTERNET、根本无法联网，但权限清单里
+      出现任何「网络」字样都会让「绝不联网」的隐私承诺显得不干净，故显式移除。
+      tools:node="remove" 会在合并阶段删掉库声明的这几条，最终 APK 里不再出现。
+    -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" tools:node="remove" />
+    <uses-permission android:name="android.permission.USE_FINGERPRINT" tools:node="remove" />
+
+    <uses-feature android:name="android.hardware.microphone" android:required="true" />
+
+    <application
+        android:name=".App"
+        android:allowBackup="false"
+        android:fullBackupContent="@xml/backup_rules"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:label="@string/app_name"
+        android:icon="@mipmap/ic_launcher"
+        android:theme="@style/Theme.ConsultTranscript"
+        android:usesCleartextTraffic="false">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.ConsultTranscript">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- 长时录音用前台服务：锁屏/切后台都不中断，通知栏常驻一条可见提示 -->
+        <service
+            android:name=".core.audio.RecorderService"
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
+    </application>
+</manifest>
