@@ -74,7 +74,8 @@ fun AppNav(navController: NavHostController, requestMicPermission: (onResult: (B
                 caseId = id,
                 onDone = { navController.navigate("transcript/$id") {
                     popUpTo("home") { inclusive = false }
-                } }
+                } },
+                onBackground = { navController.popBackStack("home", inclusive = false) }
             )
         }
 

@@ -27,6 +27,7 @@ fun HomeScreen(
     val vm: HomeViewModel = viewModel()
     val cases by vm.cases.collectAsState()
     val ctx = LocalContext.current
+    var pendingDelete by remember { mutableStateOf<CaseEntity?>(null) }
 
     Scaffold(
         topBar = {
@@ -60,16 +61,37 @@ fun HomeScreen(
         } else {
             LazyColumn(Modifier.padding(pad).fillMaxSize(), contentPadding = PaddingValues(12.dp)) {
                 items(cases, key = { it.id }) { c ->
-                    CaseCard(c, onClick = { onOpen(c.id) })
+                    CaseCard(
+                        c,
+                        onClick = { onOpen(c.id) },
+                        onDelete = { pendingDelete = c }
+                    )
                     Spacer(Modifier.height(8.dp))
                 }
             }
         }
     }
+
+    pendingDelete?.let { c ->
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            title = { Text("删除这条咨询记录？") },
+            text = {
+                Text("「${c.alias}」的文字稿和保留的录音将一并永久删除，无法恢复。确定继续吗？")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    vm.deleteCase(c)
+                    pendingDelete = null
+                }) { Text("删除") }
+            },
+            dismissButton = { TextButton(onClick = { pendingDelete = null }) { Text("取消") } }
+        )
+    }
 }
 
 @Composable
-private fun CaseCard(c: CaseEntity, onClick: () -> Unit) {
+private fun CaseCard(c: CaseEntity, onClick: () -> Unit, onDelete: () -> Unit) {
     val ctx = LocalContext.current
     val date = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINA).format(Date(c.createdAt))
     val status = when (c.status) {
@@ -82,7 +104,14 @@ private fun CaseCard(c: CaseEntity, onClick: () -> Unit) {
         Column(Modifier.padding(16.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(c.alias, style = MaterialTheme.typography.titleMedium)
-                Text(status, style = MaterialTheme.typography.labelMedium)
+                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Text(status, style = MaterialTheme.typography.labelMedium)
+                    Spacer(Modifier.width(4.dp))
+                    TextButton(onClick = onDelete, modifier = Modifier.height(32.dp)) {
+                        Text("删除", color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.labelSmall)
+                    }
+                }
             }
             Spacer(Modifier.height(4.dp))
             Row {

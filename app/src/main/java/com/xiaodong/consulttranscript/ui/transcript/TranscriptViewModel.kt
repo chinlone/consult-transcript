@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.xiaodong.consulttranscript.App
+import com.xiaodong.consulttranscript.core.audio.AudioPlayer
 import com.xiaodong.consulttranscript.data.db.CaseEntity
 import com.xiaodong.consulttranscript.data.db.SegmentEntity
 import kotlinx.coroutines.flow.*
@@ -59,5 +60,28 @@ class TranscriptViewModel(app: Application) : AndroidViewModel(app) {
 
     fun deleteKeptAudio() = viewModelScope.launch {
         repo.deleteKeptAudio(caseIdFlow.value)
+    }
+
+    // ---- 分段回听 ----
+    private val player = AudioPlayer()
+    val playing = MutableStateFlow<SegmentEntity?>(null)
+
+    /** 回听某一段：从该段起始时间播到结束。再点同一段则停止。 */
+    fun togglePlay(seg: SegmentEntity) {
+        if (playing.value?.id == seg.id) {
+            player.stop(); playing.value = null; return
+        }
+        player.stop()
+        playing.value = seg
+        val file = repo.vault.keptFile(caseIdFlow.value)
+        val duration = (seg.endMs - seg.startMs).coerceAtLeast(200L)
+        player.playSegment(file, seg.startMs, duration) {
+            playing.value = null
+        }
+    }
+
+    override fun onCleared() {
+        player.stop()
+        super.onCleared()
     }
 }

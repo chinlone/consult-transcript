@@ -8,6 +8,9 @@ interface CaseDao {
     @Query("SELECT * FROM cases ORDER BY createdAt DESC")
     fun observeAll(): Flow<List<CaseEntity>>
 
+    @Query("SELECT * FROM cases ORDER BY createdAt DESC")
+    suspend fun allOnce(): List<CaseEntity>
+
     @Query("SELECT * FROM cases WHERE id = :id")
     suspend fun get(id: String): CaseEntity?
 

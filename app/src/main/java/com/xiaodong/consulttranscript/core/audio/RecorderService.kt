@@ -34,6 +34,9 @@ class RecorderService : Service() {
     private val recorder = AudioRecorder()
 
     private var wakeLock: PowerManager.WakeLock? = null
+    // 是否由用户主动停止（区分正常结束 vs 系统回收/崩溃）
+    @Volatile private var stoppedByUser = false
+    @Volatile private var currentCaseId: String? = null
 
     companion object {
         const val EXTRA_CASE_ID = "caseId"
@@ -48,6 +51,7 @@ class RecorderService : Service() {
             ACTION_PAUSE -> { recorder.pause(); return START_STICKY }
             ACTION_RESUME -> { recorder.resume(); return START_STICKY }
             ACTION_STOP -> {
+                stoppedByUser = true
                 RecordingState.clear(this)
                 recorder.stop()
                 releaseWakeLock()
@@ -66,6 +70,10 @@ class RecorderService : Service() {
         // 已经有录音协程在跑就别重复启动（服务被重启时可能残留旧 job）
         if (job?.isActive == true) return START_STICKY
 
+        stoppedByUser = false
+        currentCaseId = caseId
+        // 恢复录音（含续录）时把状态纠正回 RECORDING（数据库写操作放协程）
+        scope.launch { (application as App).repository.markRecording(caseId) }
         RecordingState.mark(this, caseId)
         acquireWakeLock()
 
@@ -79,11 +87,22 @@ class RecorderService : Service() {
                 // recordTo 内部以「追加」方式写文件，续录时接着上次的 PCM 往后写，
                 // 并把已录时长按文件大小折算回来，计时不归零。
                 recorder.recordTo(target) { elapsed, _ ->
+                    // 每秒报到一次，证明录音还活着；首页据此判断「真录音 vs 假状态」
+                    RecordingState.heartbeat(this@RecorderService)
                     showForeground("正在录音 ${formatMs(elapsed)} · 全程不联网")
+                }
+                // 正常录制流程自然结束（例如录音器自己停了）也按用户停止处理，不留假状态
+                if (!stoppedByUser) {
+                    currentCaseId?.let { (application as App).repository.markFailedOnRecover(it) }
+                    RecordingState.clear(this@RecorderService)
                 }
             } catch (t: Throwable) {
                 // 麦克风被系统占用、权限途中被撤销等：安静停掉，绝不崩到桌面。
-                // 注意这里不 clear 状态——若是可恢复的系统回收，START_STICKY 会再调 onStartCommand 续上。
+                // 标记为未完成并清状态，避免首页永远卡在「录音中」。
+                if (!stoppedByUser) {
+                    currentCaseId?.let { (application as App).repository.markFailedOnRecover(it) }
+                    RecordingState.clear(this@RecorderService)
+                }
                 stopSelf()
             }
         }
@@ -143,6 +162,12 @@ class RecorderService : Service() {
     }
 
     override fun onDestroy() {
+        // 系统直接回收服务时可能不经过 catch，这里兜底：非用户主动停止 → 标未完成 + 清状态
+        if (!stoppedByUser) {
+            val cid = currentCaseId
+            scope.launch { cid?.let { (application as App).repository.markFailedOnRecover(it) } }
+            RecordingState.clear(this)
+        }
         recorder.stop()
         job?.cancel()
         releaseWakeLock()

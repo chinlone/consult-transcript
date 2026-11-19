@@ -51,6 +51,33 @@ class CaseRepository(private val db: AppDatabase, private val context: Context) 
         updateCase(c.copy(status = "FAILED"))
     }
 
+    /** 恢复/续录时把状态纠正回录音中（可能之前被误标成未完成） */
+    suspend fun markRecording(caseId: String) {
+        val c = getCase(caseId) ?: return
+        if (c.status != "RECORDING") updateCase(c.copy(status = "RECORDING"))
+    }
+
+    /**
+     * 录音服务异常退出（系统回收/崩溃）时把状态标为未完成。
+     * 只在仍是 RECORDING 时改，避免覆盖已完成的个案。
+     */
+    suspend fun markFailedOnRecover(caseId: String) {
+        val c = getCase(caseId) ?: return
+        if (c.status == "RECORDING") updateCase(c.copy(status = "FAILED"))
+    }
+
+    /**
+     * App 冷启动时校正「假录音中」：数据库里是 RECORDING，但没有活跃心跳的个案
+     * 一律改为 FAILED。这是 bug1 的最后一道保险——覆盖进程被整个杀掉、服务
+     * 来不及走任何回调的情况。
+     */
+    suspend fun reconcileRecordingStates(aliveCaseId: String?) {
+        db.caseDao().allOnce().filter { it.status == "RECORDING" }
+            .forEach { c ->
+                if (c.id != aliveCaseId) updateCase(c.copy(status = "FAILED"))
+            }
+    }
+
     /** 用户手动改说话人标签：标 manualOverride，重跑自动分离时不覆盖 */
     suspend fun overrideSpeaker(segment: SegmentEntity, speaker: String) {
         insertSegment(segment.copy(speaker = speaker, manualOverride = true, lowConfidence = false))

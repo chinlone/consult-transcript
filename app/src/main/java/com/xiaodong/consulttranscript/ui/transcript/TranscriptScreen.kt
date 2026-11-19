@@ -39,6 +39,7 @@ fun TranscriptScreen(caseId: String, onBack: () -> Unit) {
     LaunchedEffect(caseId) { vm.bind(caseId) }
     val case by vm.case.collectAsState()
     val segments by vm.segments.collectAsState()
+    val playing by vm.playing.collectAsState()
 
     var showExport by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf<SegmentEntity?>(null) }
@@ -88,10 +89,11 @@ fun TranscriptScreen(caseId: String, onBack: () -> Unit) {
             )
 
             if (case?.hasAudio == true) {
-                Row(Modifier.padding(horizontal = 16.dp)) {
-                    TextButton(onClick = { /* AudioPlayer 按时间戳回听 */ }) {
-                        Text(ctx.getString(R.string.transcript_listen))
-                    }
+                Column(Modifier.padding(horizontal = 16.dp)) {
+                    Text(
+                        "点击下方每段左侧的「▶ 回听」可听这一段录音",
+                        style = MaterialTheme.typography.labelSmall, color = offlineGreen
+                    )
                     TextButton(onClick = { confirmDeleteAudio = true }) {
                         Text(ctx.getString(R.string.transcript_delete_audio))
                     }
@@ -100,7 +102,14 @@ fun TranscriptScreen(caseId: String, onBack: () -> Unit) {
 
             LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(12.dp)) {
                 items(segments, key = { it.id }) { seg ->
-                    SegmentRow(seg, case, onClick = { editing = seg })
+                    SegmentRow(
+                        seg = seg,
+                        case = case,
+                        canPlay = case?.hasAudio == true,
+                        isPlaying = playing?.id == seg.id,
+                        onPlay = { vm.togglePlay(seg) },
+                        onClick = { editing = seg }
+                    )
                     Spacer(Modifier.height(6.dp))
                 }
             }
@@ -204,7 +213,14 @@ private fun RoleMapDialog(
 }
 
 @Composable
-private fun SegmentRow(seg: SegmentEntity, case: CaseEntity?, onClick: () -> Unit) {
+private fun SegmentRow(
+    seg: SegmentEntity,
+    case: CaseEntity?,
+    canPlay: Boolean,
+    isPlaying: Boolean,
+    onPlay: () -> Unit,
+    onClick: () -> Unit
+) {
     val who = RoleLabels.display(seg.speaker, case)
     Card(
         Modifier.fillMaxWidth().clickable(onClick = onClick)
@@ -212,7 +228,17 @@ private fun SegmentRow(seg: SegmentEntity, case: CaseEntity?, onClick: () -> Uni
     ) {
         Column(Modifier.padding(12.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("[${formatMs(seg.startMs)}] $who", style = MaterialTheme.typography.labelMedium)
+                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    if (canPlay) {
+                        TextButton(onClick = onPlay, modifier = Modifier.height(30.dp)) {
+                            Text(if (isPlaying) "■ 停止" else "▶ 回听",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = offlineGreen)
+                        }
+                        Spacer(Modifier.width(4.dp))
+                    }
+                    Text("[${formatMs(seg.startMs)}] $who", style = MaterialTheme.typography.labelMedium)
+                }
                 if (seg.lowConfidence) Text("建议核对", style = MaterialTheme.typography.labelSmall)
             }
             Spacer(Modifier.height(4.dp))

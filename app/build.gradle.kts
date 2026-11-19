@@ -22,8 +22,8 @@ android {
         applicationId = "com.xiaodong.consulttranscript"
         minSdk = 26          // Android 8.0 及以上，覆盖绝大多数在用机型
         targetSdk = 35
-        versionCode = 6
-        versionName = "1.0.5"
+        versionCode = 7
+        versionName = "1.0.6"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // 模型文件是二进制，禁止压缩：否则运行时要先解压、加载变慢且占双倍空间

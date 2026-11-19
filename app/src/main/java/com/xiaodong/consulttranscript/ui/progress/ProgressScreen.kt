@@ -18,7 +18,7 @@ import kotlinx.coroutines.delay
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProgressScreen(caseId: String, onDone: () -> Unit) {
+fun ProgressScreen(caseId: String, onDone: () -> Unit, onBackground: () -> Unit) {
     val ctx = LocalContext.current
     var message by remember { mutableStateOf("准备中…") }
     var fraction by remember { mutableStateOf(0f) }
@@ -60,9 +60,15 @@ fun ProgressScreen(caseId: String, onDone: () -> Unit) {
                 color = offlineGreen, style = MaterialTheme.typography.bodyMedium
             )
             Spacer(Modifier.height(24.dp))
-            OutlinedButton(onClick = { /* 切后台继续：什么都不用做，WorkManager 本来就在后台跑 */ }) {
+            OutlinedButton(onClick = onBackground) {
                 Text(ctx.getString(R.string.progress_background))
             }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "点上面按钮回到首页，转写会在后台继续；完成后可回来查看。",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

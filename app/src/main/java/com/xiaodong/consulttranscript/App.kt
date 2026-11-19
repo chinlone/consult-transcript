@@ -3,8 +3,12 @@ package com.xiaodong.consulttranscript
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import com.xiaodong.consulttranscript.core.audio.RecordingState
 import com.xiaodong.consulttranscript.data.db.PlainDbFactory
 import com.xiaodong.consulttranscript.data.repo.CaseRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class App : Application() {
 
@@ -17,6 +21,15 @@ class App : Application() {
         createNotificationChannel()
         val db = PlainDbFactory.build(this)
         repository = CaseRepository(db, this)
+
+        // 冷启动校正「假录音中」：进程被整个杀掉时服务来不及清状态，
+        // 这里把没有活跃心跳、却仍是 RECORDING 的个案改为「未完成」。
+        CoroutineScope(Dispatchers.IO).launch {
+            val alive = if (RecordingState.isRecordingAlive(this@App))
+                RecordingState.activeCaseId(this@App) else null
+            if (alive == null) RecordingState.clear(this@App)
+            repository.reconcileRecordingStates(alive)
+        }
     }
 
     private fun createNotificationChannel() {
