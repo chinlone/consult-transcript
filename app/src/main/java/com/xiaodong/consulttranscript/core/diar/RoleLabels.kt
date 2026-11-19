@@ -1,6 +1,7 @@
 package com.xiaodong.consulttranscript.core.diar
 
 import com.xiaodong.consulttranscript.data.db.CaseEntity
+import com.xiaodong.consulttranscript.data.db.SegmentEntity
 import org.json.JSONObject
 
 /**
@@ -55,13 +56,21 @@ object RoleLabels {
         }
     }
 
-    /** 该个案当前涉及的所有角色名（去重，按 A/B/C/D 顺序），用于单段编辑下拉 */
-    fun rolesInCase(case: CaseEntity?): List<String> {
+    /**
+     * 该个案当前涉及的所有角色名（去重），用于单段编辑下拉。
+     * 顺序：已映射的角色 → 稿件里已经用过的自定义名（如「婆婆」「闺蜜」，方便复用）→ 常用预设。
+     * 已过滤掉 A/B/C/D 聚类标签和内部保留字，避免把技术标签当成角色显示给用户。
+     */
+    fun rolesInCase(case: CaseEntity?, segments: List<SegmentEntity> = emptyList()): List<String> {
         if (case == null) return PRESETS
         val map = parse(case.speakerLabels)
         val ordered = ('A'.code until 'A'.code + case.speakerCount)
             .map { it.toChar().toString() }
             .mapNotNull { map[it] }
-        return (ordered + PRESETS).distinct()
+        val reserved = setOf("COUNSELOR", "CLIENT", "UNKNOWN", "A", "B", "C", "D")
+        val custom = segments.map { it.speaker }
+            .filter { it.isNotBlank() && clusterLabel(it) == null && it !in reserved }
+            .distinct()
+        return (ordered + custom + PRESETS).distinct()
     }
 }

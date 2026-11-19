@@ -120,6 +120,7 @@ fun TranscriptScreen(caseId: String, onBack: () -> Unit) {
         EditSegmentDialog(
             seg = seg,
             case = case,
+            segments = segments,
             onDismiss = { editing = null },
             onSaveText = { t -> vm.editText(seg, t); editing = null },
             onPickSpeaker = { s -> vm.changeSpeaker(seg, s); editing = null }
@@ -165,6 +166,9 @@ private fun RoleMapDialog(
     }
     val draft = remember { mutableStateMapOf<String, String>().apply { putAll(existing) } }
     var focused by remember { mutableStateOf(labels.firstOrNull() ?: "A") }
+    // 点「其他」时展开自定义输入，填好后再写进该说话人，避免把字面量「其他」当成角色
+    var customFor by remember { mutableStateOf<String?>(null) }
+    var customText by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -191,8 +195,38 @@ private fun RoleMapDialog(
                 Text("常用角色（点一下填给「说话人 $focused」）：", style = MaterialTheme.typography.labelSmall)
                 Row(Modifier.horizontalScroll(rememberScrollState())) {
                     RoleLabels.PRESETS.forEach { role ->
-                        AssistChip(onClick = { draft[focused] = role }, label = { Text(role) })
+                        AssistChip(
+                            onClick = {
+                                if (role == "其他") {
+                                    customFor = focused
+                                    customText = ""
+                                } else {
+                                    draft[focused] = role
+                                }
+                            },
+                            label = { Text(role) }
+                        )
                         Spacer(Modifier.width(6.dp))
+                    }
+                }
+                if (customFor != null) {
+                    Spacer(Modifier.height(8.dp))
+                    Text("给「说话人 $customFor」自定义角色名：", style = MaterialTheme.typography.labelSmall)
+                    OutlinedTextField(
+                        value = customText,
+                        onValueChange = { customText = it },
+                        label = { Text("角色名") },
+                        placeholder = { Text("如：婆婆 / 闺蜜 / 前夫") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Row {
+                        TextButton(onClick = {
+                            val name = customText.trim()
+                            if (name.isNotBlank()) draft[customFor!!] = name
+                            customFor = null
+                        }) { Text("填入") }
+                        TextButton(onClick = { customFor = null }) { Text("取消") }
                     }
                 }
                 if (case.speakerCount >= 2) {
@@ -252,12 +286,15 @@ private fun SegmentRow(
 private fun EditSegmentDialog(
     seg: SegmentEntity,
     case: CaseEntity?,
+    segments: List<SegmentEntity>,
     onDismiss: () -> Unit,
     onSaveText: (String) -> Unit,
     onPickSpeaker: (String) -> Unit
 ) {
     var text by remember { mutableStateOf(seg.text) }
-    val roles = RoleLabels.rolesInCase(case)
+    var customMode by remember { mutableStateOf(false) }
+    var customName by remember { mutableStateOf("") }
+    val roles = RoleLabels.rolesInCase(case, segments)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("编辑这一段") },
@@ -271,9 +308,30 @@ private fun EditSegmentDialog(
                     roles.forEach { role ->
                         FilterChip(
                             selected = false,
-                            onClick = { onPickSpeaker(role) },
+                            onClick = {
+                                if (role == "其他") customMode = true else onPickSpeaker(role)
+                            },
                             label = { Text(role) }
                         )
+                    }
+                }
+                if (customMode) {
+                    Spacer(Modifier.height(10.dp))
+                    Text("其他（自己填名字）：", style = MaterialTheme.typography.labelSmall)
+                    OutlinedTextField(
+                        value = customName,
+                        onValueChange = { customName = it },
+                        label = { Text("角色名") },
+                        placeholder = { Text("如：婆婆 / 闺蜜 / 前夫") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Row {
+                        TextButton(onClick = {
+                            val name = customName.trim()
+                            if (name.isNotBlank()) onPickSpeaker(name)
+                        }) { Text("用这个名字") }
+                        TextButton(onClick = { customMode = false }) { Text("取消") }
                     }
                 }
             }
